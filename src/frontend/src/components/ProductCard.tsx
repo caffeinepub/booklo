@@ -54,22 +54,7 @@ export default function ProductCard({
     }
   };
 
-  // Static images for demo products
-  const staticImages: Record<string, string> = {
-    "Harry Potter and the Philosopher's Stone":
-      "/assets/generated/book-harry-potter.dim_400x400.jpg",
-    "The Alchemist": "/assets/generated/book-alchemist.dim_400x400.jpg",
-    "NCERT Mathematics Class 10":
-      "/assets/generated/book-ncert-math.dim_400x400.jpg",
-    "School Shirt (White, Sizes S-XL)":
-      "/assets/generated/uniform-shirt.dim_400x400.jpg",
-    "School Trousers (Grey, Sizes 26-36)":
-      "/assets/generated/uniform-trousers.dim_400x400.jpg",
-    "School Tie (House Colors)":
-      "/assets/generated/uniform-tie.dim_400x400.jpg",
-  };
-
-  const displayImage = imageUrl || staticImages[product.name] || null;
+  const displayImage = imageUrl || null;
 
   return (
     <article className="bg-card rounded-2xl overflow-hidden shadow-card card-hover border border-border/50 group">

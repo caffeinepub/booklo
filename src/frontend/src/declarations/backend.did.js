@@ -47,6 +47,10 @@ export const OrderStatus = IDL.Variant({
   'delivered' : IDL.Null,
   'processing' : IDL.Null,
 });
+export const PaymentMethod = IDL.Variant({
+  'upiOnDelivery' : IDL.Null,
+  'cashOnDelivery' : IDL.Null,
+});
 export const OrderItem = IDL.Record({
   'productName' : IDL.Text,
   'quantity' : IDL.Nat,
@@ -56,10 +60,12 @@ export const Order = IDL.Record({
   'id' : IDL.Nat,
   'status' : OrderStatus,
   'deliveryAddress' : IDL.Text,
+  'paymentMethod' : PaymentMethod,
   'userId' : IDL.Principal,
   'createdAt' : Time,
   'totalAmount' : IDL.Nat,
   'items' : IDL.Vec(OrderItem),
+  'phoneNumber' : IDL.Text,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const CartItem = IDL.Record({
@@ -70,6 +76,13 @@ export const ShopSettings = IDL.Record({
   'shippingAmount' : IDL.Nat,
   'gstPercent' : IDL.Nat,
   'gstEnabled' : IDL.Bool,
+});
+export const ProductInput = IDL.Record({
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'stock' : IDL.Nat,
+  'category' : ProductCategory,
+  'price' : IDL.Nat,
 });
 
 export const idlService = IDL.Service({
@@ -105,6 +118,7 @@ export const idlService = IDL.Service({
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'clearCart' : IDL.Func([], [], []),
   'deleteProduct' : IDL.Func([IDL.Nat], [], []),
+  'deleteProductWithToken' : IDL.Func([IDL.Text, IDL.Nat], [], []),
   'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -123,11 +137,13 @@ export const idlService = IDL.Service({
       [IDL.Vec(Product)],
       ['query'],
     ),
-  'placeOrder' : IDL.Func([IDL.Text], [], []),
+  'placeOrder' : IDL.Func([IDL.Text, IDL.Text, PaymentMethod], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'seedProducts' : IDL.Func([IDL.Text, IDL.Vec(ProductInput)], [], []),
   'updateOrderStatus' : IDL.Func([IDL.Nat, OrderStatus], [], []),
   'updateProduct' : IDL.Func([Product], [], []),
   'updateShopSettings' : IDL.Func([ShopSettings], [], []),
+  'updateShopSettingsWithToken' : IDL.Func([IDL.Text, ShopSettings], [], []),
 });
 
 export const idlInitArgs = [];
@@ -172,6 +188,10 @@ export const idlFactory = ({ IDL }) => {
     'delivered' : IDL.Null,
     'processing' : IDL.Null,
   });
+  const PaymentMethod = IDL.Variant({
+    'upiOnDelivery' : IDL.Null,
+    'cashOnDelivery' : IDL.Null,
+  });
   const OrderItem = IDL.Record({
     'productName' : IDL.Text,
     'quantity' : IDL.Nat,
@@ -181,10 +201,12 @@ export const idlFactory = ({ IDL }) => {
     'id' : IDL.Nat,
     'status' : OrderStatus,
     'deliveryAddress' : IDL.Text,
+    'paymentMethod' : PaymentMethod,
     'userId' : IDL.Principal,
     'createdAt' : Time,
     'totalAmount' : IDL.Nat,
     'items' : IDL.Vec(OrderItem),
+    'phoneNumber' : IDL.Text,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const CartItem = IDL.Record({ 'productId' : IDL.Nat, 'quantity' : IDL.Nat });
@@ -192,6 +214,13 @@ export const idlFactory = ({ IDL }) => {
     'shippingAmount' : IDL.Nat,
     'gstPercent' : IDL.Nat,
     'gstEnabled' : IDL.Bool,
+  });
+  const ProductInput = IDL.Record({
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'stock' : IDL.Nat,
+    'category' : ProductCategory,
+    'price' : IDL.Nat,
   });
   
   return IDL.Service({
@@ -227,6 +256,7 @@ export const idlFactory = ({ IDL }) => {
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'clearCart' : IDL.Func([], [], []),
     'deleteProduct' : IDL.Func([IDL.Nat], [], []),
+    'deleteProductWithToken' : IDL.Func([IDL.Text, IDL.Nat], [], []),
     'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -245,11 +275,13 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Product)],
         ['query'],
       ),
-    'placeOrder' : IDL.Func([IDL.Text], [], []),
+    'placeOrder' : IDL.Func([IDL.Text, IDL.Text, PaymentMethod], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'seedProducts' : IDL.Func([IDL.Text, IDL.Vec(ProductInput)], [], []),
     'updateOrderStatus' : IDL.Func([IDL.Nat, OrderStatus], [], []),
     'updateProduct' : IDL.Func([Product], [], []),
     'updateShopSettings' : IDL.Func([ShopSettings], [], []),
+    'updateShopSettingsWithToken' : IDL.Func([IDL.Text, ShopSettings], [], []),
   });
 };
 

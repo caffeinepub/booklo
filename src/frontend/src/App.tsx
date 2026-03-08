@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { createContext, useContext, useState } from "react";
+import AdminLoginModal from "./components/AdminLoginModal";
 import Header from "./components/Header";
 import ProfileSetupModal from "./components/ProfileSetupModal";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
@@ -32,6 +33,10 @@ interface AppContextType {
   navigate: (page: Page, productId?: bigint) => void;
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
+  adminUnlocked: boolean;
+  setAdminUnlocked: (v: boolean) => void;
+  adminLoginOpen: boolean;
+  setAdminLoginOpen: (v: boolean) => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -39,6 +44,10 @@ export const AppContext = createContext<AppContextType>({
   navigate: () => {},
   cartOpen: false,
   setCartOpen: () => {},
+  adminUnlocked: false,
+  setAdminUnlocked: () => {},
+  adminLoginOpen: false,
+  setAdminLoginOpen: () => {},
 });
 
 export function useApp() {
@@ -48,6 +57,8 @@ export function useApp() {
 export default function App() {
   const [navState, setNavState] = useState<NavState>({ page: "home" });
   const [cartOpen, setCartOpen] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminLoginOpen, setAdminLoginOpen] = useState(false);
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity;
   const {
@@ -64,7 +75,18 @@ export default function App() {
   };
 
   return (
-    <AppContext.Provider value={{ navState, navigate, cartOpen, setCartOpen }}>
+    <AppContext.Provider
+      value={{
+        navState,
+        navigate,
+        cartOpen,
+        setCartOpen,
+        adminUnlocked,
+        setAdminUnlocked,
+        adminLoginOpen,
+        setAdminLoginOpen,
+      }}
+    >
       <TooltipProvider>
         <div className="min-h-screen bg-background flex flex-col">
           <Header />
@@ -108,6 +130,7 @@ export default function App() {
           </footer>
         </div>
         {showProfileSetup && <ProfileSetupModal />}
+        <AdminLoginModal />
         <Toaster richColors position="top-right" />
       </TooltipProvider>
     </AppContext.Provider>

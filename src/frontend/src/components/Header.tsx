@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   ClipboardList,
+  Lock,
   LogIn,
   LogOut,
   Menu,
@@ -17,7 +18,7 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useCart, useIsAdmin } from "../hooks/useQueries";
 
 export default function Header() {
-  const { navigate, navState } = useApp();
+  const { navigate, navState, adminUnlocked, setAdminLoginOpen } = useApp();
   const { identity, login, clear, loginStatus } = useInternetIdentity();
   const isAuthenticated = !!identity;
   const queryClient = useQueryClient();
@@ -121,6 +122,32 @@ export default function Header() {
               data-ocid="nav.admin_link"
             >
               Admin
+            </button>
+          )}
+          {/* Admin Panel button — always visible */}
+          {adminUnlocked ? (
+            <button
+              type="button"
+              onClick={() => navigate("admin")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+                navState.page === "admin"
+                  ? "bg-amber-100 border-amber-400 text-amber-800"
+                  : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+              }`}
+              data-ocid="nav.admin_panel_button"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Admin Panel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAdminLoginOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-accent border border-dashed border-border"
+              data-ocid="nav.admin_panel_button"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Admin Panel
             </button>
           )}
         </nav>
@@ -254,6 +281,40 @@ export default function Header() {
                 You are logged in as Admin
               </span>
             </div>
+          )}
+          {/* Admin Panel — always visible in mobile menu */}
+          {adminUnlocked ? (
+            <button
+              type="button"
+              onClick={() => {
+                navigate("admin");
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold bg-amber-50 border border-amber-300 text-amber-800 transition-colors hover:bg-amber-100 text-left"
+              data-ocid="nav.admin_panel_button"
+            >
+              <ShieldCheck className="h-4 w-4 text-amber-600" />
+              Admin Panel
+              <span className="ml-auto text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full">
+                Unlocked
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setAdminLoginOpen(true);
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium border border-dashed border-border hover:bg-accent transition-colors text-left text-muted-foreground"
+              data-ocid="nav.admin_panel_button"
+            >
+              <Lock className="h-4 w-4" />
+              Admin Panel
+              <span className="ml-auto text-xs text-muted-foreground/60">
+                Password protected
+              </span>
+            </button>
           )}
           <div className="pt-2 border-t border-border">
             {isAuthenticated ? (

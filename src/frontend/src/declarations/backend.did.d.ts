@@ -16,10 +16,12 @@ export interface Order {
   'id' : bigint,
   'status' : OrderStatus,
   'deliveryAddress' : string,
+  'paymentMethod' : PaymentMethod,
   'userId' : Principal,
   'createdAt' : Time,
   'totalAmount' : bigint,
   'items' : Array<OrderItem>,
+  'phoneNumber' : string,
 }
 export interface OrderItem {
   'productName' : string,
@@ -31,6 +33,8 @@ export type OrderStatus = { 'cancelled' : null } |
   { 'outForDelivery' : null } |
   { 'delivered' : null } |
   { 'processing' : null };
+export type PaymentMethod = { 'upiOnDelivery' : null } |
+  { 'cashOnDelivery' : null };
 export interface Product {
   'id' : bigint,
   'name' : string,
@@ -43,6 +47,13 @@ export interface Product {
 }
 export type ProductCategory = { 'schoolUniforms' : null } |
   { 'books' : null };
+export interface ProductInput {
+  'name' : string,
+  'description' : string,
+  'stock' : bigint,
+  'category' : ProductCategory,
+  'price' : bigint,
+}
 export interface ShopSettings {
   'shippingAmount' : bigint,
   'gstPercent' : bigint,
@@ -86,6 +97,7 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'clearCart' : ActorMethod<[], undefined>,
   'deleteProduct' : ActorMethod<[bigint], undefined>,
+  'deleteProductWithToken' : ActorMethod<[string, bigint], undefined>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -96,11 +108,16 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listProducts' : ActorMethod<[[] | [ProductCategory]], Array<Product>>,
-  'placeOrder' : ActorMethod<[string], undefined>,
+  'placeOrder' : ActorMethod<[string, string, PaymentMethod], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'seedProducts' : ActorMethod<[string, Array<ProductInput>], undefined>,
   'updateOrderStatus' : ActorMethod<[bigint, OrderStatus], undefined>,
   'updateProduct' : ActorMethod<[Product], undefined>,
   'updateShopSettings' : ActorMethod<[ShopSettings], undefined>,
+  'updateShopSettingsWithToken' : ActorMethod<
+    [string, ShopSettings],
+    undefined
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

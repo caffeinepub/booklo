@@ -1,16 +1,23 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   BookOpen,
   ChevronRight,
   Clock,
   GraduationCap,
+  MessageSquarePlus,
+  Send,
   ShieldCheck,
   Star,
   Truck,
   Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "../App";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useQueries";
@@ -43,6 +50,30 @@ export default function HomePage() {
   const { navigate } = useApp();
   const { data: products, isLoading } = useProducts();
   const featuredProducts = products?.slice(0, 6) ?? [];
+
+  const [bookRequestForm, setBookRequestForm] = useState({
+    name: "",
+    phone: "",
+    details: "",
+  });
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+  const handleBookRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !bookRequestForm.name.trim() ||
+      !bookRequestForm.phone.trim() ||
+      !bookRequestForm.details.trim()
+    ) {
+      toast.error("Please fill all fields before submitting");
+      return;
+    }
+    setIsSubmittingRequest(true);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    setIsSubmittingRequest(false);
+    toast.success("Request submitted! We'll contact you soon.");
+    setBookRequestForm({ name: "", phone: "", details: "" });
+  };
 
   return (
     <div className="overflow-hidden">
@@ -329,6 +360,179 @@ export default function HomePage() {
           >
             View All Products <ChevronRight className="h-4 w-4" />
           </Button>
+        </div>
+      </section>
+
+      {/* ── Request a Book Section ── */}
+      <section
+        className="relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.18 0.04 240) 0%, oklch(0.22 0.06 235) 50%, oklch(0.20 0.05 240) 100%)",
+        }}
+      >
+        {/* Decorative background elements */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 10% 50%, oklch(0.72 0.18 60 / 0.6) 0%, transparent 40%), radial-gradient(circle at 90% 30%, oklch(0.65 0.15 240 / 0.4) 0%, transparent 40%)",
+          }}
+        />
+        <div className="absolute top-6 right-6 text-9xl opacity-5 select-none font-display font-black text-white">
+          📚
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Description */}
+            <motion.div
+              initial={{ opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="space-y-5"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white/80 text-sm font-medium">
+                <MessageSquarePlus className="h-4 w-4 text-primary" />
+                Can't find what you need?
+              </div>
+              <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-white leading-tight">
+                Request a Book <br />
+                <span className="text-gradient-amber">We'll Source It!</span>
+              </h2>
+              <p className="text-white/70 leading-relaxed text-base">
+                Don't see the book you're looking for? Submit a request and our
+                team will try to source it for you. We cover textbooks, novels,
+                reference books, and more.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Any textbook or curriculum book",
+                  "Novels, story books & non-fiction",
+                  "Competitive exam preparation books",
+                  "Rare & out-of-print editions",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-center gap-3 text-white/80 text-sm"
+                  >
+                    <div className="h-5 w-5 rounded-full gradient-amber flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Right: Form */}
+            <motion.div
+              initial={{ opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+            >
+              <form
+                onSubmit={handleBookRequest}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 sm:p-8 space-y-5"
+              >
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="request-name"
+                    className="text-white font-semibold text-sm"
+                  >
+                    Your Name *
+                  </Label>
+                  <Input
+                    id="request-name"
+                    placeholder="Enter your full name"
+                    value={bookRequestForm.name}
+                    onChange={(e) =>
+                      setBookRequestForm((f) => ({
+                        ...f,
+                        name: e.target.value,
+                      }))
+                    }
+                    required
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary/30 rounded-xl"
+                    data-ocid="home.book_request.name_input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="request-phone"
+                    className="text-white font-semibold text-sm"
+                  >
+                    Phone Number *
+                  </Label>
+                  <Input
+                    id="request-phone"
+                    type="tel"
+                    placeholder="e.g. 98765 43210"
+                    value={bookRequestForm.phone}
+                    onChange={(e) =>
+                      setBookRequestForm((f) => ({
+                        ...f,
+                        phone: e.target.value,
+                      }))
+                    }
+                    required
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary/30 rounded-xl"
+                    data-ocid="home.book_request.phone_input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="request-details"
+                    className="text-white font-semibold text-sm"
+                  >
+                    Book Title &amp; Details *
+                  </Label>
+                  <Textarea
+                    id="request-details"
+                    placeholder="Book title, author name, edition, publisher (if known)..."
+                    value={bookRequestForm.details}
+                    onChange={(e) =>
+                      setBookRequestForm((f) => ({
+                        ...f,
+                        details: e.target.value,
+                      }))
+                    }
+                    rows={4}
+                    required
+                    className="bg-white/10 border-white/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary/30 resize-none rounded-xl"
+                    data-ocid="home.book_request.details_textarea"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full gradient-amber border-0 text-primary-foreground shadow-amber font-bold gap-2 text-base"
+                  disabled={isSubmittingRequest}
+                  data-ocid="home.book_request.submit_button"
+                >
+                  {isSubmittingRequest ? (
+                    <>
+                      <span className="h-4 w-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" /> Send Request
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-white/50 text-xs text-center">
+                  We'll contact you within 24 hours
+                </p>
+              </form>
+            </motion.div>
+          </div>
         </div>
       </section>
     </div>

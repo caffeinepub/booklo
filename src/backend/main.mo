@@ -13,8 +13,6 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 
-
-
 actor {
   include MixinStorage();
 
@@ -46,7 +44,9 @@ actor {
     items : [OrderItem];
     totalAmount : Nat;
     deliveryAddress : Text;
+    phoneNumber : Text;
     status : OrderStatus;
+    paymentMethod : PaymentMethod;
     createdAt : Time.Time;
   };
 
@@ -64,6 +64,11 @@ actor {
     #cancelled;
   };
 
+  type PaymentMethod = {
+    #cashOnDelivery;
+    #upiOnDelivery;
+  };
+
   public type UserProfile = {
     name : Text;
   };
@@ -72,6 +77,14 @@ actor {
     shippingAmount : Nat;
     gstEnabled : Bool;
     gstPercent : Nat;
+  };
+
+  type ProductInput = {
+    name : Text;
+    description : Text;
+    category : ProductCategory;
+    price : Nat;
+    stock : Nat;
   };
 
   // Core state
@@ -87,6 +100,8 @@ actor {
     gstPercent = 18;
   };
 
+  let ADMIN_TOKEN : Text = "Naitik20510";
+
   // Authorization
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -97,7 +112,7 @@ actor {
     };
   };
 
-  // Shop Settings APIs (New)
+  // Shop Settings APIs
   public query ({ caller }) func getShopSettings() : async ShopSettings {
     shopSettings;
   };
@@ -105,6 +120,14 @@ actor {
   public shared ({ caller }) func updateShopSettings(newSettings : ShopSettings) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    shopSettings := newSettings;
+  };
+
+  // Token-based shop settings update
+  public shared ({ caller }) func updateShopSettingsWithToken(token : Text, newSettings : ShopSettings) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
     };
     shopSettings := newSettings;
   };
@@ -180,6 +203,38 @@ actor {
     productsMap.remove(id);
   };
 
+  public shared ({ caller }) func deleteProductWithToken(token : Text, id : Nat) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+    if (not productsMap.containsKey(id)) {
+      Runtime.trap("Product not found");
+    };
+    productsMap.remove(id);
+  };
+
+  // Seed products with admin token
+  public shared ({ caller }) func seedProducts(token : Text, products : [ProductInput]) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+
+    for (product in products.values()) {
+      let newProduct : Product = {
+        id = nextProductId;
+        name = product.name;
+        description = product.description;
+        category = product.category;
+        price = product.price;
+        image = null;
+        stock = product.stock;
+        createdAt = Time.now();
+      };
+      productsMap.add(nextProductId, newProduct);
+      nextProductId += 1;
+    };
+  };
+
   // Cart APIs
   public shared ({ caller }) func addToCart(productId : Nat, quantity : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -209,7 +264,7 @@ actor {
   };
 
   // Order APIs
-  public shared ({ caller }) func placeOrder(deliveryAddress : Text) : async () {
+  public shared ({ caller }) func placeOrder(deliveryAddress : Text, phoneNumber : Text, paymentMethod : PaymentMethod) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can place orders");
     };
@@ -244,7 +299,9 @@ actor {
       items = orderItems;
       totalAmount;
       deliveryAddress;
+      phoneNumber;
       status = #pending;
+      paymentMethod;
       createdAt = Time.now();
     };
 

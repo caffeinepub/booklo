@@ -40,27 +40,32 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Banknote,
   BookOpen,
   GraduationCap,
+  ImagePlus,
   Loader2,
   Package,
   Pencil,
+  Phone,
   Plus,
-  RefreshCw,
   Settings,
   ShieldCheck,
   ShoppingBag,
+  Smartphone,
   Trash2,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "../App";
 import type { Product } from "../backend";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ExternalBlob } from "../backend";
 import {
   OrderStatus,
+  PaymentMethod,
   ProductCategory,
   type ShopSettings,
   useAddProduct,
@@ -71,60 +76,10 @@ import {
   useShopSettings,
   useUpdateOrderStatus,
   useUpdateProduct,
-  useUpdateShopSettings,
+  useUpdateShopSettingsWithToken,
 } from "../hooks/useQueries";
 
-// Sample products to seed
-const SAMPLE_PRODUCTS = [
-  {
-    name: "Harry Potter and the Philosopher's Stone",
-    description:
-      "The magical first book in J.K. Rowling's legendary Harry Potter series. Perfect for young readers and fantasy enthusiasts.",
-    category: ProductCategory.books,
-    price: 499n,
-    stock: 50n,
-  },
-  {
-    name: "The Alchemist",
-    description:
-      "Paulo Coelho's masterpiece about following your dreams. A timeless tale of self-discovery and personal legend.",
-    category: ProductCategory.books,
-    price: 299n,
-    stock: 30n,
-  },
-  {
-    name: "NCERT Mathematics Class 10",
-    description:
-      "Official NCERT textbook for Class 10 Mathematics. Covers all chapters as per CBSE syllabus.",
-    category: ProductCategory.books,
-    price: 180n,
-    stock: 100n,
-  },
-  {
-    name: "School Shirt (White, Sizes S-XL)",
-    description:
-      "Premium quality white cotton school shirt. Available in sizes S, M, L, and XL. Durable and comfortable for everyday use.",
-    category: ProductCategory.schoolUniforms,
-    price: 350n,
-    stock: 80n,
-  },
-  {
-    name: "School Trousers (Grey, Sizes 26-36)",
-    description:
-      "Classic grey school trousers with belt loops. Available in waist sizes 26 to 36 inches. Machine washable.",
-    category: ProductCategory.schoolUniforms,
-    price: 450n,
-    stock: 60n,
-  },
-  {
-    name: "School Tie (House Colors)",
-    description:
-      "Traditional striped school tie with vibrant house colors (red, blue, green, yellow). Polyester blend for easy care.",
-    category: ProductCategory.schoolUniforms,
-    price: 120n,
-    stock: 120n,
-  },
-];
+const ADMIN_TOKEN = "Naitik20510";
 
 const statusOptions = [
   { value: OrderStatus.pending, label: "Pending" },
@@ -150,6 +105,8 @@ interface ProductFormState {
   category: ProductCategory;
   price: string;
   stock: string;
+  imageFile: File | null;
+  imagePreviewUrl: string | null;
 }
 
 const emptyForm: ProductFormState = {
@@ -158,12 +115,12 @@ const emptyForm: ProductFormState = {
   category: ProductCategory.books,
   price: "",
   stock: "",
+  imageFile: null,
+  imagePreviewUrl: null,
 };
 
 export default function AdminPage() {
-  const { navigate } = useApp();
-  const { identity } = useInternetIdentity();
-  const isAuthenticated = !!identity;
+  const { navigate, adminUnlocked } = useApp();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
   const { data: products, isLoading: productsLoading } = useProducts();
@@ -173,25 +130,15 @@ export default function AdminPage() {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
   const updateOrderStatus = useUpdateOrderStatus();
-  const updateShopSettings = useUpdateShopSettings();
+  const updateShopSettingsWithToken = useUpdateShopSettingsWithToken();
 
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<bigint | null>(null);
   const [form, setForm] = useState<ProductFormState>(emptyForm);
-  const [seeding, setSeeding] = useState(false);
   const [settingsShipping, setSettingsShipping] = useState<string>("0");
   const [settingsGstEnabled, setSettingsGstEnabled] = useState<boolean>(false);
   const [settingsGstPercent, setSettingsGstPercent] = useState<string>("18");
-
-  // Auto-seed if admin and empty catalog - note: seeding state intentionally excluded to avoid loop
-  // biome-ignore lint/correctness/useExhaustiveDependencies: seeding excluded intentionally
-  useEffect(() => {
-    if (isAdmin && products && products.length === 0 && !seeding) {
-      handleSeedProducts();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, products]);
 
   // Sync shopSettings into local settings state when loaded
   useEffect(() => {
@@ -201,31 +148,6 @@ export default function AdminPage() {
       setSettingsGstPercent(Number(shopSettings.gstPercent).toString());
     }
   }, [shopSettings]);
-
-  const handleSeedProducts = async () => {
-    if (seeding) return;
-    setSeeding(true);
-    try {
-      await Promise.all(
-        SAMPLE_PRODUCTS.map((p) =>
-          addProduct.mutateAsync({
-            id: 0n,
-            name: p.name,
-            description: p.description,
-            category: p.category,
-            price: p.price,
-            stock: p.stock,
-            createdAt: BigInt(Date.now()) * 1_000_000n,
-          }),
-        ),
-      );
-      toast.success("Sample products seeded successfully!");
-    } catch {
-      toast.error("Failed to seed products");
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const openAddDialog = () => {
     setEditingProduct(null);
@@ -241,6 +163,8 @@ export default function AdminPage() {
       category: product.category,
       price: product.price.toString(),
       stock: product.stock.toString(),
+      imageFile: null,
+      imagePreviewUrl: product.image ? product.image.getDirectURL() : null,
     });
     setShowProductDialog(true);
   };
@@ -251,6 +175,15 @@ export default function AdminPage() {
       toast.error("Please fill all required fields");
       return;
     }
+
+    let imageBlob: ExternalBlob | undefined;
+    if (form.imageFile) {
+      const bytes = new Uint8Array(await form.imageFile.arrayBuffer());
+      imageBlob = ExternalBlob.fromBytes(bytes);
+    } else if (editingProduct?.image) {
+      imageBlob = editingProduct.image;
+    }
+
     const productData: Product = {
       id: editingProduct?.id ?? 0n,
       name: form.name.trim(),
@@ -259,6 +192,7 @@ export default function AdminPage() {
       price: BigInt(form.price),
       stock: BigInt(form.stock),
       createdAt: editingProduct?.createdAt ?? BigInt(Date.now()) * 1_000_000n,
+      image: imageBlob,
     };
     try {
       if (editingProduct) {
@@ -277,7 +211,10 @@ export default function AdminPage() {
   const handleDeleteProduct = async () => {
     if (deleteProductId === null) return;
     try {
-      await deleteProduct.mutateAsync(deleteProductId);
+      await deleteProduct.mutateAsync({
+        token: ADMIN_TOKEN,
+        id: deleteProductId,
+      });
       toast.success("Product deleted");
       setDeleteProductId(null);
     } catch {
@@ -307,14 +244,17 @@ export default function AdminPage() {
       ),
     };
     try {
-      await updateShopSettings.mutateAsync(newSettings);
+      await updateShopSettingsWithToken.mutateAsync({
+        token: ADMIN_TOKEN,
+        settings: newSettings,
+      });
       toast.success("Settings saved successfully!");
     } catch {
       toast.error("Failed to save settings");
     }
   };
 
-  if (!isAuthenticated || adminLoading) {
+  if (adminLoading && !adminUnlocked) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 text-center">
         <Skeleton className="h-8 w-48 mx-auto mb-4" />
@@ -323,7 +263,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !adminUnlocked) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
         <ShieldCheck className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
@@ -447,31 +387,15 @@ export default function AdminPage() {
             <div className="bg-card rounded-2xl shadow-card border border-border/50 overflow-hidden">
               <div className="p-5 border-b border-border flex items-center justify-between">
                 <h2 className="font-display font-bold text-lg">All Products</h2>
-                <div className="flex gap-2">
-                  {products?.length === 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSeedProducts}
-                      disabled={seeding}
-                      className="gap-2"
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 ${seeding ? "animate-spin" : ""}`}
-                      />
-                      Seed Demo Data
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    className="gradient-amber border-0 text-primary-foreground shadow-amber gap-2 font-semibold"
-                    onClick={openAddDialog}
-                    data-ocid="admin.add_product_button"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Product
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  className="gradient-amber border-0 text-primary-foreground shadow-amber gap-2 font-semibold"
+                  onClick={openAddDialog}
+                  data-ocid="admin.add_product_button"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Product
+                </Button>
               </div>
 
               {productsLoading ? (
@@ -491,7 +415,7 @@ export default function AdminPage() {
                   <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p className="font-semibold">No products yet</p>
                   <p className="text-sm">
-                    Add your first product or seed demo data
+                    Add your first product using the "Add Product" button
                   </p>
                 </div>
               ) : (
@@ -627,6 +551,8 @@ export default function AdminPage() {
                         <TableHead className="font-semibold">Items</TableHead>
                         <TableHead className="font-semibold">Total</TableHead>
                         <TableHead className="font-semibold">Address</TableHead>
+                        <TableHead className="font-semibold">Phone</TableHead>
+                        <TableHead className="font-semibold">Payment</TableHead>
                         <TableHead className="font-semibold">Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -668,6 +594,30 @@ export default function AdminPage() {
                               <p className="text-xs text-muted-foreground line-clamp-2">
                                 {order.deliveryAddress}
                               </p>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                <p className="text-xs font-mono text-foreground">
+                                  {order.phoneNumber || "—"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                {order.paymentMethod ===
+                                PaymentMethod.cashOnDelivery ? (
+                                  <Banknote className="h-3.5 w-3.5 text-success flex-shrink-0" />
+                                ) : (
+                                  <Smartphone className="h-3.5 w-3.5 text-info flex-shrink-0" />
+                                )}
+                                <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                                  {order.paymentMethod ===
+                                  PaymentMethod.cashOnDelivery
+                                    ? "Cash"
+                                    : "UPI"}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Select
@@ -796,10 +746,10 @@ export default function AdminPage() {
                 type="submit"
                 size="lg"
                 className="gradient-amber border-0 text-primary-foreground shadow-amber font-bold gap-2"
-                disabled={updateShopSettings.isPending}
+                disabled={updateShopSettingsWithToken.isPending}
                 data-ocid="admin.settings.save_button"
               >
-                {updateShopSettings.isPending ? (
+                {updateShopSettingsWithToken.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Saving...
                   </>
@@ -831,6 +781,72 @@ export default function AdminPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleProductSubmit} className="space-y-4 pt-2">
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Product Image</Label>
+              {form.imagePreviewUrl ? (
+                <div className="relative w-full rounded-xl overflow-hidden border border-border bg-muted">
+                  <img
+                    src={form.imagePreviewUrl}
+                    alt="Product preview"
+                    className="w-full h-40 object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                    onClick={() => {
+                      if (form.imageFile) {
+                        URL.revokeObjectURL(form.imagePreviewUrl!);
+                      }
+                      setForm((f) => ({
+                        ...f,
+                        imageFile: null,
+                        imagePreviewUrl: null,
+                      }));
+                    }}
+                    data-ocid="admin.product_form.remove_image_button"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="product-image-upload"
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                  data-ocid="admin.product_form.dropzone"
+                >
+                  <ImagePlus className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground font-medium">
+                    Click to upload product image
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-0.5">
+                    PNG, JPG up to 10MB
+                  </span>
+                  <input
+                    id="product-image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    data-ocid="admin.product_form.upload_button"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const previewUrl = URL.createObjectURL(file);
+                        setForm((f) => ({
+                          ...f,
+                          imageFile: file,
+                          imagePreviewUrl: previewUrl,
+                        }));
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="product-name">Product Name *</Label>
               <Input

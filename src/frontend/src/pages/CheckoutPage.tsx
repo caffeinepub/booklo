@@ -1,14 +1,18 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
+  Banknote,
   BookOpen,
   CheckCircle2,
   Loader2,
   MapPin,
   Package,
+  Phone,
+  Smartphone,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -16,6 +20,7 @@ import { toast } from "sonner";
 import { useApp } from "../App";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  PaymentMethod,
   useCart,
   usePlaceOrder,
   useProducts,
@@ -27,6 +32,10 @@ export default function CheckoutPage() {
   const { identity } = useInternetIdentity();
   const isAuthenticated = !!identity;
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    PaymentMethod.cashOnDelivery,
+  );
   const [orderPlaced, setOrderPlaced] = useState(false);
   const { data: cart } = useCart();
   const { data: products } = useProducts();
@@ -70,12 +79,20 @@ export default function CheckoutPage() {
       toast.error("Please enter a delivery address");
       return;
     }
+    if (!phone.trim()) {
+      toast.error("Please enter your phone number");
+      return;
+    }
     if (!cart || cart.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
     try {
-      await placeOrder.mutateAsync(address.trim());
+      await placeOrder.mutateAsync({
+        deliveryAddress: address.trim(),
+        phoneNumber: phone.trim(),
+        paymentMethod,
+      });
       setOrderPlaced(true);
     } catch {
       toast.error("Failed to place order. Please try again.");
@@ -114,7 +131,7 @@ export default function CheckoutPage() {
                 Your books and uniforms are on their way!
               </p>
             </div>
-            <div className="bg-card rounded-2xl p-6 shadow-card text-left max-w-sm mx-auto border border-border/50">
+            <div className="bg-card rounded-2xl p-6 shadow-card text-left max-w-sm mx-auto border border-border/50 space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
@@ -122,6 +139,23 @@ export default function CheckoutPage() {
                     Delivery Address
                   </p>
                   <p className="text-sm text-muted-foreground">{address}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                {paymentMethod === PaymentMethod.cashOnDelivery ? (
+                  <Banknote className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                ) : (
+                  <Smartphone className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-1">
+                    Payment Method
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {paymentMethod === PaymentMethod.cashOnDelivery
+                      ? "Cash on Delivery"
+                      : "UPI on Delivery"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -168,25 +202,139 @@ export default function CheckoutPage() {
                       <MapPin className="h-5 w-5 text-primary" />
                       Delivery Address
                     </h2>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="address"
-                        className="text-sm font-semibold"
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="address"
+                          className="text-sm font-semibold"
+                        >
+                          Full Address
+                        </Label>
+                        <Textarea
+                          id="address"
+                          placeholder="Enter your complete delivery address including flat/house number, street, city, state, and PIN code..."
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          rows={4}
+                          className="resize-none rounded-xl"
+                          data-ocid="checkout.address_textarea"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Please include your full address for smooth delivery
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="phone"
+                          className="text-sm font-semibold flex items-center gap-1.5"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-primary" />
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="e.g. 9876543210"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="rounded-xl"
+                          data-ocid="checkout.phone_input"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          We'll contact you on this number for delivery updates
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method Selection */}
+                  <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50">
+                    <h2 className="font-display font-bold text-lg mb-4 flex items-center gap-2">
+                      <Banknote className="h-5 w-5 text-primary" />
+                      Payment Method
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Cash on Delivery */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPaymentMethod(PaymentMethod.cashOnDelivery)
+                        }
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                          paymentMethod === PaymentMethod.cashOnDelivery
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/30"
+                        }`}
+                        data-ocid="checkout.payment.cod_toggle"
                       >
-                        Full Address
-                      </Label>
-                      <Textarea
-                        id="address"
-                        placeholder="Enter your complete delivery address including flat/house number, street, city, state, and PIN code..."
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        rows={4}
-                        className="resize-none rounded-xl"
-                        data-ocid="checkout.address_textarea"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Please include your full address for smooth delivery
-                      </p>
+                        <div
+                          className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            paymentMethod === PaymentMethod.cashOnDelivery
+                              ? "gradient-amber"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <Banknote
+                            className={`h-5 w-5 ${paymentMethod === PaymentMethod.cashOnDelivery ? "text-white" : "text-muted-foreground"}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            Cash on Delivery
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Pay cash when your order arrives
+                          </p>
+                        </div>
+                        {paymentMethod === PaymentMethod.cashOnDelivery && (
+                          <div className="ml-auto">
+                            <div className="h-5 w-5 rounded-full gradient-amber flex items-center justify-center">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </button>
+
+                      {/* UPI on Delivery */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPaymentMethod(PaymentMethod.upiOnDelivery)
+                        }
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                          paymentMethod === PaymentMethod.upiOnDelivery
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/30"
+                        }`}
+                        data-ocid="checkout.payment.upi_toggle"
+                      >
+                        <div
+                          className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            paymentMethod === PaymentMethod.upiOnDelivery
+                              ? "gradient-amber"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <Smartphone
+                            className={`h-5 w-5 ${paymentMethod === PaymentMethod.upiOnDelivery ? "text-white" : "text-muted-foreground"}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            UPI on Delivery
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Scan & pay via UPI when order arrives
+                          </p>
+                        </div>
+                        {paymentMethod === PaymentMethod.upiOnDelivery && (
+                          <div className="ml-auto">
+                            <div className="h-5 w-5 rounded-full gradient-amber flex items-center justify-center">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -195,7 +343,10 @@ export default function CheckoutPage() {
                     size="lg"
                     className="w-full gradient-amber border-0 text-primary-foreground shadow-amber font-bold gap-2"
                     disabled={
-                      !address.trim() || placeOrder.isPending || !cart?.length
+                      !address.trim() ||
+                      !phone.trim() ||
+                      placeOrder.isPending ||
+                      !cart?.length
                     }
                     data-ocid="checkout.place_order_button"
                   >

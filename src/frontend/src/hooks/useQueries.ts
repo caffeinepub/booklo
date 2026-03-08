@@ -3,16 +3,25 @@ import {
   type CartItem,
   type Order,
   OrderStatus,
+  PaymentMethod,
   type Product,
   ProductCategory,
+  type ProductInput,
   type ShopSettings,
   type UserProfile,
   UserRole,
 } from "../backend";
 import { useActor } from "./useActor";
 
-export { ProductCategory, OrderStatus, UserRole };
-export type { Product, Order, CartItem, UserProfile, ShopSettings };
+export { ProductCategory, OrderStatus, UserRole, PaymentMethod };
+export type {
+  Product,
+  Order,
+  CartItem,
+  UserProfile,
+  ShopSettings,
+  ProductInput,
+};
 
 // ── Auth / User ─────────────────────────────────────
 
@@ -119,9 +128,9 @@ export function useDeleteProduct() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: bigint) => {
+    mutationFn: async ({ token, id }: { token: string; id: bigint }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.deleteProduct(id);
+      return actor.deleteProductWithToken(token, id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -183,9 +192,17 @@ export function usePlaceOrder() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (deliveryAddress: string) => {
+    mutationFn: async ({
+      deliveryAddress,
+      phoneNumber,
+      paymentMethod,
+    }: {
+      deliveryAddress: string;
+      phoneNumber: string;
+      paymentMethod: PaymentMethod;
+    }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.placeOrder(deliveryAddress);
+      return actor.placeOrder(deliveryAddress, phoneNumber, paymentMethod);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
@@ -262,6 +279,46 @@ export function useUpdateShopSettings() {
     mutationFn: async (settings: ShopSettings) => {
       if (!actor) throw new Error("Actor not available");
       return actor.updateShopSettings(settings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+    },
+  });
+}
+
+export function useSeedProducts() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      token,
+      products,
+    }: {
+      token: string;
+      products: Array<ProductInput>;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.seedProducts(token, products);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function useUpdateShopSettingsWithToken() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      token,
+      settings,
+    }: {
+      token: string;
+      settings: ShopSettings;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateShopSettingsWithToken(token, settings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
