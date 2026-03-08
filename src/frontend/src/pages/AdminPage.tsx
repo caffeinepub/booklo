@@ -124,7 +124,7 @@ export default function AdminPage() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
   const { data: products, isLoading: productsLoading } = useProducts();
-  const { data: orders, isLoading: ordersLoading } = useAllOrders();
+  const { data: orders, isLoading: ordersLoading } = useAllOrders(ADMIN_TOKEN);
   const { data: shopSettings } = useShopSettings();
   const addProduct = useAddProduct();
   const updateProduct = useUpdateProduct();
@@ -169,6 +169,56 @@ export default function AdminPage() {
     setShowProductDialog(true);
   };
 
+  const compressImage = (file: File): Promise<Uint8Array<ArrayBuffer>> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement("canvas");
+        // Max dimension 800px
+        const maxDim = 800;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas not supported"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Compression failed"));
+              return;
+            }
+            blob
+              .arrayBuffer()
+              .then((buf) => resolve(new Uint8Array(buf as ArrayBuffer)))
+              .catch(reject);
+          },
+          "image/jpeg",
+          0.7,
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Failed to load image"));
+      };
+      img.src = url;
+    });
+  };
+
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.price || !form.stock) {
@@ -178,8 +228,13 @@ export default function AdminPage() {
 
     let imageBlob: ExternalBlob | undefined;
     if (form.imageFile) {
-      const bytes = new Uint8Array(await form.imageFile.arrayBuffer());
-      imageBlob = ExternalBlob.fromBytes(bytes);
+      try {
+        const bytes = await compressImage(form.imageFile);
+        imageBlob = ExternalBlob.fromBytes(bytes);
+      } catch {
+        toast.error("Failed to process image. Please try a smaller image.");
+        return;
+      }
     } else if (editingProduct?.image) {
       imageBlob = editingProduct.image;
     }
@@ -196,10 +251,16 @@ export default function AdminPage() {
     };
     try {
       if (editingProduct) {
-        await updateProduct.mutateAsync(productData);
+        await updateProduct.mutateAsync({
+          token: ADMIN_TOKEN,
+          product: productData,
+        });
         toast.success("Product updated!");
       } else {
-        await addProduct.mutateAsync(productData);
+        await addProduct.mutateAsync({
+          token: ADMIN_TOKEN,
+          product: productData,
+        });
         toast.success("Product added!");
       }
       setShowProductDialog(false);
@@ -227,7 +288,11 @@ export default function AdminPage() {
     status: OrderStatus,
   ) => {
     try {
-      await updateOrderStatus.mutateAsync({ orderId, status });
+      await updateOrderStatus.mutateAsync({
+        token: ADMIN_TOKEN,
+        orderId,
+        status,
+      });
       toast.success("Order status updated");
     } catch {
       toast.error("Failed to update order status");
@@ -822,7 +887,7 @@ export default function AdminPage() {
                     Click to upload product image
                   </span>
                   <span className="text-xs text-muted-foreground mt-0.5">
-                    PNG, JPG up to 10MB
+                    PNG, JPG (auto-compressed)
                   </span>
                   <input
                     id="product-image-upload"
@@ -833,6 +898,11 @@ export default function AdminPage() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        if (!file.type.startsWith("image/")) {
+                          toast.error("Please select an image file");
+                          e.target.value = "";
+                          return;
+                        }
                         const previewUrl = URL.createObjectURL(file);
                         setForm((f) => ({
                           ...f,

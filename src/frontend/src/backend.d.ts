@@ -82,12 +82,14 @@ export enum UserRole {
 }
 export interface backendInterface {
     addProduct(product: Product): Promise<void>;
+    addProductWithToken(token: string, product: Product): Promise<void>;
     addToCart(productId: bigint, quantity: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     clearCart(): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     deleteProductWithToken(token: string, id: bigint): Promise<void>;
     getAllOrders(): Promise<Array<Order>>;
+    getAllOrdersWithToken(token: string): Promise<Array<Order>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCart(): Promise<Array<CartItem>>;
@@ -101,7 +103,9 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     seedProducts(token: string, products: Array<ProductInput>): Promise<void>;
     updateOrderStatus(orderId: bigint, status: OrderStatus): Promise<void>;
+    updateOrderStatusWithToken(token: string, orderId: bigint, status: OrderStatus): Promise<void>;
     updateProduct(product: Product): Promise<void>;
+    updateProductWithToken(token: string, product: Product): Promise<void>;
     updateShopSettings(newSettings: ShopSettings): Promise<void>;
     updateShopSettingsWithToken(token: string, newSettings: ShopSettings): Promise<void>;
 }

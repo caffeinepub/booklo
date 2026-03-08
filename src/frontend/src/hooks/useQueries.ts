@@ -100,9 +100,12 @@ export function useAddProduct() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (product: Product) => {
+    mutationFn: async ({
+      token,
+      product,
+    }: { token: string; product: Product }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.addProduct(product);
+      return actor.addProductWithToken(token, product);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -114,9 +117,12 @@ export function useUpdateProduct() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (product: Product) => {
+    mutationFn: async ({
+      token,
+      product,
+    }: { token: string; product: Product }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.updateProduct(product);
+      return actor.updateProductWithToken(token, product);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -223,15 +229,15 @@ export function useMyOrders() {
   });
 }
 
-export function useAllOrders() {
+export function useAllOrders(token: string) {
   const { actor, isFetching } = useActor();
   return useQuery<Order[]>({
-    queryKey: ["allOrders"],
+    queryKey: ["allOrders", token],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllOrders();
+      return actor.getAllOrdersWithToken(token);
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!token,
   });
 }
 
@@ -240,14 +246,16 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
+      token,
       orderId,
       status,
     }: {
+      token: string;
       orderId: bigint;
       status: OrderStatus;
     }) => {
       if (!actor) throw new Error("Actor not available");
-      return actor.updateOrderStatus(orderId, status);
+      return actor.updateOrderStatusWithToken(token, orderId, status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allOrders"] });

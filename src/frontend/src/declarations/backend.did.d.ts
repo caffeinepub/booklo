@@ -93,12 +93,14 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addProduct' : ActorMethod<[Product], undefined>,
+  'addProductWithToken' : ActorMethod<[string, Product], undefined>,
   'addToCart' : ActorMethod<[bigint, bigint], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'clearCart' : ActorMethod<[], undefined>,
   'deleteProduct' : ActorMethod<[bigint], undefined>,
   'deleteProductWithToken' : ActorMethod<[string, bigint], undefined>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
+  'getAllOrdersWithToken' : ActorMethod<[string], Array<Order>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCart' : ActorMethod<[], Array<CartItem>>,
@@ -112,7 +114,12 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'seedProducts' : ActorMethod<[string, Array<ProductInput>], undefined>,
   'updateOrderStatus' : ActorMethod<[bigint, OrderStatus], undefined>,
+  'updateOrderStatusWithToken' : ActorMethod<
+    [string, bigint, OrderStatus],
+    undefined
+  >,
   'updateProduct' : ActorMethod<[Product], undefined>,
+  'updateProductWithToken' : ActorMethod<[string, Product], undefined>,
   'updateShopSettings' : ActorMethod<[ShopSettings], undefined>,
   'updateShopSettingsWithToken' : ActorMethod<
     [string, ShopSettings],

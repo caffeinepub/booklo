@@ -11,7 +11,9 @@ import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
+
 import Storage "blob-storage/Storage";
+
 
 actor {
   include MixinStorage();
@@ -213,6 +215,31 @@ actor {
     productsMap.remove(id);
   };
 
+  // Token gated admin product add method
+  public shared ({ caller }) func addProductWithToken(token : Text, product : Product) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+    let newProduct = {
+      product with
+      id = nextProductId;
+      createdAt = Time.now();
+    };
+    productsMap.add(nextProductId, newProduct);
+    nextProductId += 1;
+  };
+
+  // Token admin product update
+  public shared ({ caller }) func updateProductWithToken(token : Text, product : Product) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+    if (not productsMap.containsKey(product.id)) {
+      Runtime.trap("Product not found");
+    };
+    productsMap.add(product.id, product);
+  };
+
   // Seed products with admin token
   public shared ({ caller }) func seedProducts(token : Text, products : [ProductInput]) : async () {
     if (token != ADMIN_TOKEN) {
@@ -326,6 +353,27 @@ actor {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     ordersMap.values().toArray();
+  };
+
+  // Token-based getAllOrders
+  public query ({ caller }) func getAllOrdersWithToken(token : Text) : async [Order] {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+    ordersMap.values().toArray();
+  };
+
+  // Token-based updateOrderStatus
+  public shared ({ caller }) func updateOrderStatusWithToken(token : Text, orderId : Nat, status : OrderStatus) : async () {
+    if (token != ADMIN_TOKEN) {
+      Runtime.trap("Unauthorized: Invalid admin token");
+    };
+    let order = switch (ordersMap.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?o) { o };
+    };
+    let updatedOrder = { order with status };
+    ordersMap.add(orderId, updatedOrder);
   };
 
   public shared ({ caller }) func updateOrderStatus(orderId : Nat, status : OrderStatus) : async () {

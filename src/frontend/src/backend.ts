@@ -175,12 +175,14 @@ export interface backendInterface {
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addProduct(product: Product): Promise<void>;
+    addProductWithToken(token: string, product: Product): Promise<void>;
     addToCart(productId: bigint, quantity: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     clearCart(): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     deleteProductWithToken(token: string, id: bigint): Promise<void>;
     getAllOrders(): Promise<Array<Order>>;
+    getAllOrdersWithToken(token: string): Promise<Array<Order>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCart(): Promise<Array<CartItem>>;
@@ -194,7 +196,9 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     seedProducts(token: string, products: Array<ProductInput>): Promise<void>;
     updateOrderStatus(orderId: bigint, status: OrderStatus): Promise<void>;
+    updateOrderStatusWithToken(token: string, orderId: bigint, status: OrderStatus): Promise<void>;
     updateProduct(product: Product): Promise<void>;
+    updateProductWithToken(token: string, product: Product): Promise<void>;
     updateShopSettings(newSettings: ShopSettings): Promise<void>;
     updateShopSettingsWithToken(token: string, newSettings: ShopSettings): Promise<void>;
 }
@@ -313,6 +317,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async addProductWithToken(arg0: string, arg1: Product): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addProductWithToken(arg0, await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addProductWithToken(arg0, await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
     async addToCart(arg0: bigint, arg1: bigint): Promise<void> {
         if (this.processError) {
             try {
@@ -394,6 +412,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAllOrders();
+            return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllOrdersWithToken(arg0: string): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllOrdersWithToken(arg0);
+                return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllOrdersWithToken(arg0);
             return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
         }
     }
@@ -579,6 +611,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateOrderStatusWithToken(arg0: string, arg1: bigint, arg2: OrderStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateOrderStatusWithToken(arg0, arg1, to_candid_OrderStatus_n39(this._uploadFile, this._downloadFile, arg2));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateOrderStatusWithToken(arg0, arg1, to_candid_OrderStatus_n39(this._uploadFile, this._downloadFile, arg2));
+            return result;
+        }
+    }
     async updateProduct(arg0: Product): Promise<void> {
         if (this.processError) {
             try {
@@ -590,6 +636,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateProduct(await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async updateProductWithToken(arg0: string, arg1: Product): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateProductWithToken(arg0, await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateProductWithToken(arg0, await to_candid_Product_n8(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
