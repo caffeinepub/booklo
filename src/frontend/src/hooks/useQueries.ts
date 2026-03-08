@@ -1,0 +1,270 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type CartItem,
+  type Order,
+  OrderStatus,
+  type Product,
+  ProductCategory,
+  type ShopSettings,
+  type UserProfile,
+  UserRole,
+} from "../backend";
+import { useActor } from "./useActor";
+
+export { ProductCategory, OrderStatus, UserRole };
+export type { Product, Order, CartItem, UserProfile, ShopSettings };
+
+// ── Auth / User ─────────────────────────────────────
+
+export function useIsAdmin() {
+  const { actor, isFetching } = useActor();
+  return useQuery<boolean>({
+    queryKey: ["isAdmin"],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
+  });
+}
+
+export function useUserProfile() {
+  const { actor, isFetching } = useActor();
+  const query = useQuery<UserProfile | null>({
+    queryKey: ["currentUserProfile"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.getCallerUserProfile();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+  return {
+    ...query,
+    isLoading: isFetching || query.isLoading,
+    isFetched: !!actor && query.isFetched,
+  };
+}
+
+export function useSaveUserProfile() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (profile: UserProfile) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.saveCallerUserProfile(profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
+    },
+  });
+}
+
+// ── Products ─────────────────────────────────────────
+
+export function useProducts(category: ProductCategory | null = null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Product[]>({
+    queryKey: ["products", category],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listProducts(category);
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useProduct(id: bigint | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery<Product | null>({
+    queryKey: ["product", id?.toString()],
+    queryFn: async () => {
+      if (!actor || id === null) return null;
+      return actor.getProduct(id);
+    },
+    enabled: !!actor && !isFetching && id !== null,
+  });
+}
+
+export function useAddProduct() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (product: Product) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.addProduct(product);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (product: Product) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateProduct(product);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+export function useDeleteProduct() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteProduct(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+// ── Cart ──────────────────────────────────────────────
+
+export function useCart() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CartItem[]>({
+    queryKey: ["cart"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getCart();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddToCart() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      productId,
+      quantity,
+    }: {
+      productId: bigint;
+      quantity: bigint;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.addToCart(productId, quantity);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+
+export function useClearCart() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.clearCart();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+
+// ── Orders ────────────────────────────────────────────
+
+export function usePlaceOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (deliveryAddress: string) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.placeOrder(deliveryAddress);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["myOrders"] });
+    },
+  });
+}
+
+export function useMyOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Order[]>({
+    queryKey: ["myOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAllOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Order[]>({
+    queryKey: ["allOrders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      status,
+    }: {
+      orderId: bigint;
+      status: OrderStatus;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateOrderStatus(orderId, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["myOrders"] });
+    },
+  });
+}
+
+// ── Shop Settings ─────────────────────────────────────
+
+export function useShopSettings() {
+  const { actor, isFetching } = useActor();
+  return useQuery<ShopSettings>({
+    queryKey: ["shopSettings"],
+    queryFn: async () => {
+      if (!actor)
+        return { shippingAmount: 0n, gstEnabled: false, gstPercent: 18n };
+      return actor.getShopSettings();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
+  });
+}
+
+export function useUpdateShopSettings() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: ShopSettings) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.updateShopSettings(settings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+    },
+  });
+}
