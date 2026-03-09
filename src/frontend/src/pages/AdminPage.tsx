@@ -45,6 +45,7 @@ import {
   GraduationCap,
   ImagePlus,
   Loader2,
+  Lock,
   Package,
   Pencil,
   Phone,
@@ -524,13 +525,22 @@ export default function AdminPage() {
                               className={`border-0 text-xs ${
                                 product.category === ProductCategory.books
                                   ? "bg-secondary text-secondary-foreground"
-                                  : "gradient-amber text-primary-foreground"
+                                  : product.category ===
+                                      ProductCategory.privateBooks
+                                    ? "bg-purple-100 text-purple-800"
+                                    : "gradient-amber text-primary-foreground"
                               }`}
                             >
                               {product.category === ProductCategory.books ? (
                                 <>
                                   <BookOpen className="h-3 w-3 mr-1" />
                                   Book
+                                </>
+                              ) : product.category ===
+                                ProductCategory.privateBooks ? (
+                                <>
+                                  <Lock className="h-3 w-3 mr-1" />
+                                  Private Book
                                 </>
                               ) : (
                                 <>
@@ -964,6 +974,11 @@ export default function AdminPage() {
                     <SelectItem value={ProductCategory.schoolUniforms}>
                       <span className="flex items-center gap-2">
                         <GraduationCap className="h-4 w-4" /> School Uniforms
+                      </span>
+                    </SelectItem>
+                    <SelectItem value={ProductCategory.privateBooks}>
+                      <span className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" /> Private Books
                       </span>
                     </SelectItem>
                   </SelectContent>

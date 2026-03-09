@@ -11,15 +11,15 @@ import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
-
 import Storage "blob-storage/Storage";
+import Migration "migration";
 
-
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
   // Types
-  type Product = {
+  public type Product = {
     id : Nat;
     name : Text;
     description : Text;
@@ -30,17 +30,12 @@ actor {
     createdAt : Time.Time;
   };
 
-  type ProductCategory = {
-    #books;
-    #schoolUniforms;
-  };
-
   type CartItem = {
     productId : Nat;
     quantity : Nat;
   };
 
-  type Order = {
+  public type Order = {
     id : Nat;
     userId : Principal;
     items : [OrderItem];
@@ -52,13 +47,13 @@ actor {
     createdAt : Time.Time;
   };
 
-  type OrderItem = {
+  public type OrderItem = {
     productName : Text;
     quantity : Nat;
     price : Nat;
   };
 
-  type OrderStatus = {
+  public type OrderStatus = {
     #pending;
     #processing;
     #outForDelivery;
@@ -66,7 +61,7 @@ actor {
     #cancelled;
   };
 
-  type PaymentMethod = {
+  public type PaymentMethod = {
     #cashOnDelivery;
     #upiOnDelivery;
   };
@@ -75,18 +70,24 @@ actor {
     name : Text;
   };
 
-  type ShopSettings = {
+  public type ShopSettings = {
     shippingAmount : Nat;
     gstEnabled : Bool;
     gstPercent : Nat;
   };
 
-  type ProductInput = {
+  public type ProductInput = {
     name : Text;
     description : Text;
     category : ProductCategory;
     price : Nat;
     stock : Nat;
+  };
+
+  public type ProductCategory = {
+    #books;
+    #schoolUniforms;
+    #privateBooks;
   };
 
   // Core state

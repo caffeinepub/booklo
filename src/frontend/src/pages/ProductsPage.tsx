@@ -1,14 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, GraduationCap, Package, Search } from "lucide-react";
+import { BookOpen, GraduationCap, Lock, Package, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { useProducts } from "../hooks/useQueries";
 import { ProductCategory } from "../hooks/useQueries";
 
-type TabValue = "all" | "books" | "uniforms";
+type TabValue = "all" | "books" | "uniforms" | "privateBooks";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -25,7 +25,9 @@ export default function ProductsPage() {
         activeTab === "all" ||
         (activeTab === "books" && p.category === ProductCategory.books) ||
         (activeTab === "uniforms" &&
-          p.category === ProductCategory.schoolUniforms);
+          p.category === ProductCategory.schoolUniforms) ||
+        (activeTab === "privateBooks" &&
+          p.category === ProductCategory.privateBooks);
       return matchSearch && matchCategory;
     });
   }, [products, search, activeTab]);
@@ -34,6 +36,9 @@ export default function ProductsPage() {
     products?.filter((p) => p.category === ProductCategory.books).length ?? 0;
   const uniformsCount =
     products?.filter((p) => p.category === ProductCategory.schoolUniforms)
+      .length ?? 0;
+  const privateBooksCount =
+    products?.filter((p) => p.category === ProductCategory.privateBooks)
       .length ?? 0;
 
   return (
@@ -102,6 +107,17 @@ export default function ProductsPage() {
             Uniforms
             <span className="text-xs text-muted-foreground">
               ({uniformsCount})
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="privateBooks"
+            className="rounded-lg font-semibold data-[state=active]:bg-card data-[state=active]:shadow-card gap-2"
+            data-ocid="products.private_books_tab"
+          >
+            <Lock className="h-4 w-4" />
+            Private Books
+            <span className="text-xs text-muted-foreground">
+              ({privateBooksCount})
             </span>
           </TabsTrigger>
         </TabsList>

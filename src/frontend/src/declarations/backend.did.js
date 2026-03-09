@@ -22,6 +22,7 @@ export const _CaffeineStorageRefillResult = IDL.Record({
 export const Time = IDL.Int;
 export const ProductCategory = IDL.Variant({
   'schoolUniforms' : IDL.Null,
+  'privateBooks' : IDL.Null,
   'books' : IDL.Null,
 });
 export const ExternalBlob = IDL.Vec(IDL.Nat8);
@@ -171,6 +172,7 @@ export const idlFactory = ({ IDL }) => {
   const Time = IDL.Int;
   const ProductCategory = IDL.Variant({
     'schoolUniforms' : IDL.Null,
+    'privateBooks' : IDL.Null,
     'books' : IDL.Null,
   });
   const ExternalBlob = IDL.Vec(IDL.Nat8);

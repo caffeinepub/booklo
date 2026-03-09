@@ -73,6 +73,7 @@ export enum PaymentMethod {
 }
 export enum ProductCategory {
     schoolUniforms = "schoolUniforms",
+    privateBooks = "privateBooks",
     books = "books"
 }
 export enum UserRole {

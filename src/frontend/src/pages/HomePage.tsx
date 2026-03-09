@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   GraduationCap,
+  Lock,
   MessageSquarePlus,
   Send,
   ShieldCheck,
@@ -186,7 +187,7 @@ export default function HomePage() {
           <p className="text-muted-foreground mb-8">
             Find exactly what you need for school
           </p>
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Books card */}
             <motion.button
               whileHover={{ scale: 1.02, y: -4 }}
@@ -249,6 +250,54 @@ export default function HomePage() {
                 </div>
                 <div className="text-8xl opacity-20 font-display font-black text-white select-none">
                   🎒
+                </div>
+              </div>
+            </motion.button>
+
+            {/* Private Books card */}
+            <motion.button
+              whileHover={{ scale: 1.02, y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("products")}
+              className="group relative rounded-2xl overflow-hidden text-left sm:col-span-2 lg:col-span-1"
+              style={{
+                background:
+                  "linear-gradient(135deg, oklch(0.42 0.18 295), oklch(0.35 0.2 280))",
+              }}
+              data-ocid="home.private_books_category_button"
+            >
+              <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-white to-transparent" />
+              {/* Decorative shimmer */}
+              <div
+                className="absolute inset-0 opacity-5"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle at 80% 20%, oklch(0.85 0.1 295 / 0.8) 0%, transparent 50%)",
+                }}
+              />
+              <div className="relative p-8 flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center mb-4 shadow-lg">
+                    <Lock className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-bold text-2xl text-white">
+                      Private Books
+                    </h3>
+                    <span className="inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white/90 border border-white/30">
+                      10% OFF
+                    </span>
+                  </div>
+                  <p className="text-white/80 text-sm">
+                    Exclusive &amp; premium book collection
+                  </p>
+                  <div className="flex items-center gap-1 text-purple-200 font-semibold text-sm pt-2">
+                    Explore Private Books{" "}
+                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+                <div className="text-8xl opacity-20 font-display font-black text-white select-none">
+                  🔒
                 </div>
               </div>
             </motion.button>

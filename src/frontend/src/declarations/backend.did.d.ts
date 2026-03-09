@@ -46,6 +46,7 @@ export interface Product {
   'price' : bigint,
 }
 export type ProductCategory = { 'schoolUniforms' : null } |
+  { 'privateBooks' : null } |
   { 'books' : null };
 export interface ProductInput {
   'name' : string,

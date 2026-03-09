@@ -21,6 +21,7 @@ import { useApp } from "../App";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   PaymentMethod,
+  ProductCategory,
   useCart,
   usePlaceOrder,
   useProducts,
@@ -71,7 +72,15 @@ export default function CheckoutPage() {
   const gstEnabled = shopSettings?.gstEnabled ?? false;
   const gstPercent = shopSettings ? Number(shopSettings.gstPercent) : 18;
   const gstAmount = gstEnabled ? Math.round((subtotal * gstPercent) / 100) : 0;
-  const total = subtotal + shippingAmount + gstAmount;
+
+  const privateBookSubtotal = cartWithProducts.reduce((sum, item) => {
+    if (item.product?.category !== ProductCategory.privateBooks) return sum;
+    const price = Number(item.product.price);
+    return sum + price * Number(item.quantity);
+  }, 0);
+  const privateBookDiscount = Math.round(privateBookSubtotal * 0.1);
+
+  const total = subtotal - privateBookDiscount + shippingAmount + gstAmount;
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -414,6 +423,19 @@ export default function CheckoutPage() {
                         ₹{subtotal}
                       </span>
                     </div>
+                    {privateBookDiscount > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          Private Books Discount
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-700">
+                            10% off
+                          </span>
+                        </span>
+                        <span className="font-semibold text-green-600">
+                          -₹{privateBookDiscount}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-muted-foreground">
                       <span>Shipping</span>
                       <span

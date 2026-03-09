@@ -159,6 +159,7 @@ export enum PaymentMethod {
 }
 export enum ProductCategory {
     schoolUniforms = "schoolUniforms",
+    privateBooks = "privateBooks",
     books = "books"
 }
 export enum UserRole {
@@ -828,9 +829,11 @@ function from_candid_variant_n24(_uploadFile: (file: ExternalBlob) => Promise<Ui
 function from_candid_variant_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     schoolUniforms: null;
 } | {
+    privateBooks: null;
+} | {
     books: null;
 }): ProductCategory {
-    return "schoolUniforms" in value ? ProductCategory.schoolUniforms : "books" in value ? ProductCategory.books : value;
+    return "schoolUniforms" in value ? ProductCategory.schoolUniforms : "privateBooks" in value ? ProductCategory.privateBooks : "books" in value ? ProductCategory.books : value;
 }
 function from_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Order>): Array<Order> {
     return value.map((x)=>from_candid_Order_n16(_uploadFile, _downloadFile, x));
@@ -931,10 +934,14 @@ async function to_candid_record_n9(_uploadFile: (file: ExternalBlob) => Promise<
 function to_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ProductCategory): {
     schoolUniforms: null;
 } | {
+    privateBooks: null;
+} | {
     books: null;
 } {
     return value == ProductCategory.schoolUniforms ? {
         schoolUniforms: null
+    } : value == ProductCategory.privateBooks ? {
+        privateBooks: null
     } : value == ProductCategory.books ? {
         books: null
     } : value;
