@@ -188,7 +188,7 @@ export default function ProductDetailPage({
           </div>
 
           <p className="text-muted-foreground leading-relaxed">
-            {product.description}
+            {product.description.split("\n\n__META__")[0]}
           </p>
 
           <div className="flex items-baseline gap-2">

@@ -82,6 +82,52 @@ import {
 
 const ADMIN_TOKEN = "Naitik20510";
 
+// Extend the base Product type with optional fields not yet in the generated backend.ts
+type ExtendedProduct = Product & {
+  uniformSize?: string;
+  bookClass?: string;
+};
+
+// Meta encoding helpers — uniformSize/bookClass are stored inside the description string
+const META_SEP = "\n\n__META__";
+const KV_SEP = "||";
+
+function encodeMeta(
+  desc: string,
+  uniformSize: string,
+  bookClass: string,
+): string {
+  const parts: string[] = [];
+  if (uniformSize.trim()) parts.push(`uniformSize=${uniformSize.trim()}`);
+  if (bookClass.trim()) parts.push(`bookClass=${bookClass.trim()}`);
+  if (parts.length === 0) return desc.trim();
+  return `${desc.trim()}${META_SEP}${parts.join(KV_SEP)}`;
+}
+
+function decodeMeta(raw: string): {
+  description: string;
+  uniformSize: string;
+  bookClass: string;
+} {
+  const idx = raw.indexOf(META_SEP);
+  if (idx === -1) return { description: raw, uniformSize: "", bookClass: "" };
+  const description = raw.slice(0, idx);
+  const meta: Record<string, string> = {};
+  for (const kv of raw.slice(idx + META_SEP.length).split(KV_SEP)) {
+    const [k, ...rest] = kv.split("=");
+    if (k) meta[k.trim()] = rest.join("=").trim();
+  }
+  return {
+    description,
+    uniformSize: meta.uniformSize ?? "",
+    bookClass: meta.bookClass ?? "",
+  };
+}
+
+function getVisibleDescription(raw: string): string {
+  return decodeMeta(raw).description;
+}
+
 const statusOptions = [
   { value: OrderStatus.pending, label: "Pending" },
   { value: OrderStatus.processing, label: "Processing" },
@@ -108,6 +154,8 @@ interface ProductFormState {
   stock: string;
   imageFile: File | null;
   imagePreviewUrl: string | null;
+  uniformSize: string;
+  bookClass: string;
 }
 
 const emptyForm: ProductFormState = {
@@ -118,13 +166,16 @@ const emptyForm: ProductFormState = {
   stock: "",
   imageFile: null,
   imagePreviewUrl: null,
+  uniformSize: "",
+  bookClass: "",
 };
 
 export default function AdminPage() {
   const { navigate, adminUnlocked } = useApp();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
-  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: rawProducts, isLoading: productsLoading } = useProducts();
+  const products = rawProducts as ExtendedProduct[] | undefined;
   const { data: orders, isLoading: ordersLoading } = useAllOrders(ADMIN_TOKEN);
   const { data: shopSettings } = useShopSettings();
   const addProduct = useAddProduct();
@@ -134,7 +185,9 @@ export default function AdminPage() {
   const updateShopSettingsWithToken = useUpdateShopSettingsWithToken();
 
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ExtendedProduct | null>(
+    null,
+  );
   const [deleteProductId, setDeleteProductId] = useState<bigint | null>(null);
   const [form, setForm] = useState<ProductFormState>(emptyForm);
   const [settingsShipping, setSettingsShipping] = useState<string>("0");
@@ -156,16 +209,19 @@ export default function AdminPage() {
     setShowProductDialog(true);
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = (product: ExtendedProduct) => {
     setEditingProduct(product);
+    const decoded = decodeMeta(product.description);
     setForm({
       name: product.name,
-      description: product.description,
+      description: decoded.description,
       category: product.category,
       price: product.price.toString(),
       stock: product.stock.toString(),
       imageFile: null,
       imagePreviewUrl: product.image ? product.image.getDirectURL() : null,
+      uniformSize: decoded.uniformSize,
+      bookClass: decoded.bookClass,
     });
     setShowProductDialog(true);
   };
@@ -240,10 +296,15 @@ export default function AdminPage() {
       imageBlob = editingProduct.image;
     }
 
-    const productData: Product = {
+    const encodedDesc = encodeMeta(
+      form.description,
+      form.uniformSize,
+      form.bookClass,
+    );
+    const productData: ExtendedProduct = {
       id: editingProduct?.id ?? 0n,
       name: form.name.trim(),
-      description: form.description.trim(),
+      description: encodedDesc,
       category: form.category,
       price: BigInt(form.price),
       stock: BigInt(form.stock),
@@ -254,13 +315,13 @@ export default function AdminPage() {
       if (editingProduct) {
         await updateProduct.mutateAsync({
           token: ADMIN_TOKEN,
-          product: productData,
+          product: productData as Product,
         });
         toast.success("Product updated!");
       } else {
         await addProduct.mutateAsync({
           token: ADMIN_TOKEN,
-          product: productData,
+          product: productData as Product,
         });
         toast.success("Product added!");
       }
@@ -516,8 +577,20 @@ export default function AdminPage() {
                                 {product.name}
                               </p>
                               <p className="text-xs text-muted-foreground line-clamp-1">
-                                {product.description}
+                                {getVisibleDescription(product.description)}
                               </p>
+                              {decodeMeta(product.description).uniformSize && (
+                                <span className="inline-flex items-center mt-0.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                                  Size:{" "}
+                                  {decodeMeta(product.description).uniformSize}
+                                </span>
+                              )}
+                              {decodeMeta(product.description).bookClass && (
+                                <span className="inline-flex items-center mt-0.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">
+                                  Class:{" "}
+                                  {decodeMeta(product.description).bookClass}
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -953,6 +1026,50 @@ export default function AdminPage() {
                 className="resize-none"
               />
             </div>
+
+            {/* Uniform Size — shown only for School Uniforms */}
+            {form.category === ProductCategory.schoolUniforms && (
+              <div className="space-y-2">
+                <Label htmlFor="product-uniform-size">
+                  Uniform Size{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  id="product-uniform-size"
+                  placeholder="e.g. S, M, L, XL, XXL"
+                  value={form.uniformSize}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, uniformSize: e.target.value }))
+                  }
+                  data-ocid="admin.product_form.uniform_size_input"
+                />
+              </div>
+            )}
+
+            {/* Book Class — shown for Books and Private Books */}
+            {(form.category === ProductCategory.books ||
+              form.category === ProductCategory.privateBooks) && (
+              <div className="space-y-2">
+                <Label htmlFor="product-book-class">
+                  Book Class{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  id="product-book-class"
+                  placeholder="e.g. Class 10, Class 12"
+                  value={form.bookClass}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, bookClass: e.target.value }))
+                  }
+                  data-ocid="admin.product_form.book_class_input"
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category *</Label>

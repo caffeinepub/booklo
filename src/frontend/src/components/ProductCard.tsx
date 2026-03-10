@@ -122,7 +122,7 @@ export default function ProductCard({
             {product.name}
           </h3>
           <p className="text-muted-foreground text-xs mt-1 line-clamp-1">
-            {product.description}
+            {product.description.split("\n\n__META__")[0]}
           </p>
         </div>
       </button>
